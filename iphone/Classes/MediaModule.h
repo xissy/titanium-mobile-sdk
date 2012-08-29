@@ -1,8 +1,10 @@
 /**
  * Appcelerator Titanium Mobile
- * Copyright (c) 2009-2010 by Appcelerator, Inc. All Rights Reserved.
+ * Copyright (c) 2009-2012 by Appcelerator, Inc. All Rights Reserved.
  * Licensed under the terms of the Apache Public License
  * Please see the LICENSE included with this distribution for details.
+ * 
+ * WARNING: This is generated code. Modify at your own risk and without support.
  */
 #ifdef USE_TI_MEDIA
 
@@ -207,6 +209,22 @@
 @property(nonatomic,readonly) NSNumber* VIDEO_FINISH_REASON_PLAYBACK_ENDED;
 @property(nonatomic,readonly) NSNumber* VIDEO_FINISH_REASON_PLAYBACK_ERROR;
 @property(nonatomic,readonly) NSNumber* VIDEO_FINISH_REASON_USER_EXITED;
+
+#endif
+
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_4_0
+
+@property (nonatomic,readonly) NSNumber *REMOTE_CONTROL_PLAY;
+@property (nonatomic,readonly) NSNumber *REMOTE_CONTROL_PAUSE;
+@property (nonatomic,readonly) NSNumber *REMOTE_CONTROL_STOP;
+@property (nonatomic,readonly) NSNumber *REMOTE_CONTROL_PLAY_PAUSE;
+@property (nonatomic,readonly) NSNumber *REMOTE_CONTROL_NEXT;
+@property (nonatomic,readonly) NSNumber *REMOTE_CONTROL_PREV;
+@property (nonatomic,readonly) NSNumber *REMOTE_CONTROL_START_SEEK_BACK;
+@property (nonatomic,readonly) NSNumber *REMOTE_CONTROL_END_SEEK_BACK;
+@property (nonatomic,readonly) NSNumber *REMOTE_CONTROL_START_SEEK_FORWARD;
+@property (nonatomic,readonly) NSNumber *REMOTE_CONTROL_END_SEEK_FORWARD;
 
 #endif
 

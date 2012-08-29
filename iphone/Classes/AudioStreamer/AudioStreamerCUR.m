@@ -24,6 +24,7 @@
 
 @interface AudioStreamerCUR ()
 @property (nonatomic, readwrite) TI_AudioStreamerState state;
+@property (nonatomic, readwrite) TI_AudioStreamerStopReason stopReason;
 
 - (void)handlePropertyChangeForFileStream:(AudioFileStreamID)inAudioFileStream
 	fileStreamPropertyID:(AudioFileStreamPropertyID)inPropertyID
@@ -197,7 +198,7 @@ void ASReadStreamCallBackCUR
 
 -(NSUInteger)bufferSize
 {
-    return (bufferSize) ? bufferSize : kAQDefaultBufSize;
+	return (bufferSize) ? bufferSize : kAQDefaultBufSize;
 }
 
 //
@@ -211,7 +212,7 @@ void ASReadStreamCallBackCUR
 	if (self != nil)
 	{
 		url = [aURL retain];
-        bufferSize = 0;
+		bufferSize = 0;
 		volume = 1.0;
 	}
 	return self;
@@ -349,6 +350,7 @@ void ASReadStreamCallBackCUR
 		{
 			self.state = AS_STOPPING;
 			stopReason = AS_STOPPING_ERROR;
+			self.stopReason = AS_STOPPING_ERROR;
 			AudioQueueStop(audioQueue, true);
 		}
 
@@ -834,6 +836,7 @@ cleanup:
 	//
 	self.state = AS_STOPPING;
 	stopReason = AS_STOPPING_TEMPORARILY;
+	self.stopReason = AS_STOPPING_TEMPORARILY;
 	err = AudioQueueStop(audioQueue, true);
 	if (err)
 	{
@@ -876,9 +879,9 @@ cleanup:
 {
 	@synchronized(self)
 	{
-		if (sampleRate > 0 && ![self isFinishing])
+		if (sampleRate > 0)
 		{
-			if (state != AS_PLAYING && state != AS_PAUSED && state != AS_BUFFERING)
+			if (state != AS_PLAYING && state != AS_PAUSED && state != AS_BUFFERING && state != AS_STOPPING)
 			{
 				return lastProgress * 1000;
 			}
@@ -1020,7 +1023,7 @@ cleanup:
 		}
 		else if (state == AS_PAUSED)
 		{
-            AudioQueuePrime(audioQueue, 1, NULL);
+			AudioQueuePrime(audioQueue, 1, NULL);
 			err = AudioQueueStart(audioQueue, NULL);
 			if (err)
 			{
@@ -1052,6 +1055,7 @@ cleanup:
 		{
 			self.state = AS_STOPPING;
 			stopReason = AS_STOPPING_USER_ACTION;
+			self.stopReason = AS_STOPPING_USER_ACTION;
 			err = AudioQueueStop(audioQueue, true);
 			if (err)
 			{
@@ -1063,6 +1067,7 @@ cleanup:
 		{
 			self.state = AS_STOPPED;
 			stopReason = AS_STOPPING_USER_ACTION;
+			self.stopReason = AS_STOPPING_USER_ACTION;
 		}
 		seekWasRequested = NO;
 	}
@@ -1151,6 +1156,7 @@ cleanup:
 
 					self.state = AS_STOPPING;
 					stopReason = AS_STOPPING_EOF;
+					self.stopReason = AS_STOPPING_EOF;
 					err = AudioQueueStop(audioQueue, false);
 					if (err)
 					{
@@ -1162,6 +1168,7 @@ cleanup:
 				{
 					self.state = AS_STOPPED;
 					stopReason = AS_STOPPING_EOF;
+					self.stopReason = AS_STOPPING_EOF;
 				}
 			}
 		}
@@ -1312,7 +1319,7 @@ cleanup:
 			{
 				if (self.state == AS_BUFFERING)
 				{
-                    AudioQueuePrime(audioQueue, 1, NULL);
+					AudioQueuePrime(audioQueue, 1, NULL);
 					err = AudioQueueStart(audioQueue, NULL);
 					if (err)
 					{
@@ -1325,7 +1332,7 @@ cleanup:
 				{
 					self.state = AS_WAITING_FOR_QUEUE_TO_START;
 
-                    AudioQueuePrime(audioQueue, 1, NULL);
+					AudioQueuePrime(audioQueue, 1, NULL);
 					err = AudioQueueStart(audioQueue, NULL);
 					if (err)
 					{
@@ -1521,7 +1528,7 @@ cleanup:
 				[self failWithErrorCode:AS_FILE_STREAM_GET_PROPERTY_FAILED];
 				return;
 			}
-	        err = AudioFileStreamGetProperty(inAudioFileStream, kAudioFileStreamProperty_FormatList, &formatListSize, formatList);
+			err = AudioFileStreamGetProperty(inAudioFileStream, kAudioFileStreamProperty_FormatList, &formatListSize, formatList);
 			if (err)
 			{
 				[self failWithErrorCode:AS_FILE_STREAM_GET_PROPERTY_FAILED];

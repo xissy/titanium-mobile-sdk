@@ -18,7 +18,7 @@
 
 // Also note that we've had to change enumeration and class names here - this is because
 // some modules may require the use of AudioStreamer in external libraries and the
-// symbols cannot be changed on that end.  The use of common symbols in Titanium without
+// symbols cannot be changed on that end.  The use of common symbols in ReggingsRadioIphone without
 // namespaces is a recurring problem, and we can thank Objective-C for it.
 // - SPT
 
@@ -108,7 +108,9 @@ extern NSString * const ASStatusChangedNotification;
 @protocol AudioStreamerProtocol<NSObject>
 @property TI_AudioStreamerErrorCode errorCode;
 @property (nonatomic, readonly) TI_AudioStreamerState state;
+@property (nonatomic, readonly) TI_AudioStreamerStopReason stopReason;
 @property (readonly) double progress;
+@property (readonly) double duration;
 @property (readwrite) UInt32 bitRate;
 @property (readwrite) double volume;
 @property (readwrite,assign) id<AudioStreamerDelegate> delegate;
@@ -121,6 +123,7 @@ extern NSString * const ASStatusChangedNotification;
 - (BOOL)isPaused;
 - (BOOL)isWaiting;
 - (BOOL)isIdle;
+- (double)calculatedBitRate;
 @end
 
 @interface TI_AudioStreamer : NSObject<AudioStreamerProtocol,AudioStreamerDelegate>
