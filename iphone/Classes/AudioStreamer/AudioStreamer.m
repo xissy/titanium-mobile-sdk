@@ -164,6 +164,7 @@ RUN_ON_STREAMER_RETURN(state, TI_AudioStreamerState)
 RUN_ON_STREAMER_RETURN(stopReason, TI_AudioStreamerStopReason)
 RUN_ON_STREAMER_RETURN(bitRate, UInt32)
 RUN_ON_STREAMER_RETURN(progress, double)
+RUN_ON_STREAMER_RETURN(duration, double)
 RUN_ON_STREAMER_RETURN(bufferSize, NSUInteger)
 RUN_ON_STREAMER_RETURN(volume, double)
 

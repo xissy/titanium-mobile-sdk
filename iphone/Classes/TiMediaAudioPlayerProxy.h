@@ -1,10 +1,8 @@
 /**
  * Appcelerator Titanium Mobile
- * Copyright (c) 2009-2012 by Appcelerator, Inc. All Rights Reserved.
+ * Copyright (c) 2009-2010 by Appcelerator, Inc. All Rights Reserved.
  * Licensed under the terms of the Apache Public License
  * Please see the LICENSE included with this distribution for details.
- * 
- * WARNING: This is generated code. Modify at your own risk and without support.
  */
 #ifdef USE_TI_MEDIA
 
@@ -14,28 +12,31 @@
 
 @interface TiMediaAudioPlayerProxy : TiProxy<AudioStreamerDelegate> {
 @private
-	NSURL *url;
-    NSUInteger bufferSize;
-	double volume;
-	AudioStreamer *player;
-	BOOL progress;
-	NSTimer *timer;
+  NSURL *url;
+  AudioStreamer *player;
+  BOOL progress;
+  NSTimer *timer;
+    BOOL fireRemoteControlEvents;
+    
+    // used to keep firing progress updates for the last few seconds of the reported duration
+    // even if player has stopped streaming audio
+    double playerProgress;
+    BOOL afterStopProgress;
+    double previousDuration;
 }
 
 @property (nonatomic,readonly) NSURL *url;
-@property (nonatomic,readwrite,assign)  NSNumber *paused;
-@property (nonatomic,readonly) NSNumber *playing;
-@property (nonatomic,readonly) NSNumber *waiting;
-@property (nonatomic,readonly) NSNumber *idle;
+@property (nonatomic,readonly) NSNumber *time;
+@property (nonatomic,readonly) NSNumber *volume;
+@property (nonatomic,readwrite,assign,getter=isPaused)  NSNumber *paused;
+@property (nonatomic,readonly,getter=isPlaying) NSNumber *playing;
+@property (nonatomic,readonly,getter=isWaiting) NSNumber *waiting;
+@property (nonatomic,readonly,getter=isIdle) NSNumber *idle;
 @property (nonatomic,readonly) NSNumber *bitRate;
 @property (nonatomic,readonly) NSNumber *progress;
 @property (nonatomic,readonly) NSNumber *state;
 @property (nonatomic,readonly) NSNumber *stopReason;
-
-@property (nonatomic,copy)	NSNumber *volume;
-
 @property (nonatomic,readwrite,assign) NSNumber* audioSessionMode;
-@property (nonatomic,readwrite,assign) NSNumber* bufferSize;
 
 @property (nonatomic,readonly) NSNumber *STATE_INITIALIZED;
 @property (nonatomic,readonly) NSNumber *STATE_STARTING;

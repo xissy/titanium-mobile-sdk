@@ -1,10 +1,8 @@
 /**
  * Appcelerator Titanium Mobile
- * Copyright (c) 2009-2012 by Appcelerator, Inc. All Rights Reserved.
+ * Copyright (c) 2009-2010 by Appcelerator, Inc. All Rights Reserved.
  * Licensed under the terms of the Apache Public License
  * Please see the LICENSE included with this distribution for details.
- * 
- * WARNING: This is generated code. Modify at your own risk and without support.
  */
 #ifdef USE_TI_MEDIA
 
@@ -13,13 +11,15 @@
 #import "TiMediaAudioSession.h"
 #include <AudioToolbox/AudioToolbox.h>
 
+// for MPMusicPlayerController for setting volume
+#import <MediaPlayer/MediaPlayer.h>
+
 @implementation TiMediaAudioPlayerProxy
 
 #pragma mark Internal
 
 -(void)_initWithProperties:(NSDictionary *)properties
 {
-	volume = [TiUtils doubleValue:@"volume" properties:properties def:1.0];
 	url = [[TiUtils toURL:[properties objectForKey:@"url"] proxy:self] retain];
     int initialMode = [TiUtils intValue:@"audioSessionMode" 
                              properties:properties
@@ -27,6 +27,15 @@
 	if (initialMode) {
 		[self setAudioSessionMode:[NSNumber numberWithInt:initialMode]];
 	}
+    
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_4_0
+  // default handlePlayRemoteControls to true
+  bool handlePlayRemoteControls = [TiUtils boolValue:@"handlePlayRemoteControls" properties:properties def:YES];
+  [self setValue:NUMBOOL(handlePlayRemoteControls) forKey:@"handlePlayRemoteControls"];
+  
+  WARN_IF_BACKGROUND_THREAD_OBJ;	//NSNotificationCenter is not threadsafe!
+  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(remoteControlEvent:) name:kTiRemoteControlNotification object:nil];
+#endif
 }
 
 -(void)_destroy
@@ -34,7 +43,6 @@
 	if (timer!=nil)
 	{
 		[timer invalidate];
-		RELEASE_TO_NIL(timer);
 	}
 	if (player!=nil)
 	{
@@ -55,6 +63,11 @@
 	{
 		progress = YES;
 	}
+    
+    if (count == 1 && [type isEqualToString:@"remoteControl"])
+    {
+        fireRemoteControlEvents = YES;
+    }
 }
 
 -(void)_listenerRemoved:(NSString *)type count:(int)count
@@ -63,6 +76,20 @@
 	{
 		progress = NO;
 	}
+    
+    if (count == 0 && [type isEqualToString:@"remoteControl"])
+	{
+		fireRemoteControlEvents = NO;
+	}
+}
+
+-(void)createProgressTimer
+{
+    ENSURE_UI_THREAD_0_ARGS;
+    
+    // create progress callback timer that fires once per second. we might want to eventually make this
+    // more configurable but for now that's sufficient for most apps that want to display progress updates on the stream
+    timer = [[NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(updateProgress:) userInfo:nil repeats:YES] retain];
 }
 
 -(AudioStreamer*)player
@@ -75,14 +102,10 @@
 		}
 		player = [[AudioStreamer alloc] initWithURL:url];
 		[player setDelegate:self];
-        [player setBufferSize:bufferSize];
-		[player setVolume:volume];
 		
 		if (progress)
 		{
-			// create progress callback timer that fires once per second. we might want to eventually make this
-			// more configurable but for now that's sufficient for most apps that want to display progress updates on the stream
-			timer = [[NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(updateProgress:) userInfo:nil repeats:YES] retain];
+			[self createProgressTimer];
 		}
 	}
 	return player;
@@ -107,22 +130,50 @@
 	}
 }
 
+-(void)startPlayer
+{
+    ENSURE_UI_THREAD_0_ARGS;
+    
+    [[self player] start];
+}
+
+// Only need to ensure the UI thread when starting; and we should actually wait until it's finished so
+// that execution flow is correct (if we stop/pause immediately after)
+-(void)internalStart
+{
+	if (![NSThread isMainThread]) {
+		[self performSelectorOnMainThread:@selector(internalStart) withObject:nil waitUntilDone:YES];
+		return;
+	}
+	// indicate we're going to start playing
+	if (![[TiMediaAudioSession sharedSession] canPlayback]) {
+		[self throwException:@"Improper audio session mode for playback"
+				   subreason:[[NSNumber numberWithUnsignedInt:[[TiMediaAudioSession sharedSession] sessionMode]] description]
+					location:CODELOCATION];
+	}
+	
+	if (player == nil || !([player isPlaying] || [player isPaused] || [player isWaiting])) {
+		[[TiMediaAudioSession sharedSession] startAudioSession];
+	}
+	[[self player] start];
+}
+
 -(void)restart:(id)args
 {
 	BOOL playing = [player isPlaying] || [player isPaused] || [player isWaiting];
-	[self destroyPlayer];
 	
+    [self destroyPlayer];
+	
+    // recreate it
+    [self player];
+    
 	if (playing)
 	{
-		[[self player] start];
-	}
-	else 
-	{
-		// just create it
-		[self player];
+        // restart the player this way to restart the audio session
+        // (since destroyPlayer stops the audio session)
+		[self internalStart];
 	}
 }
-
 
 #pragma mark Public APIs
 
@@ -136,7 +187,7 @@
 		}
 		else
 		{
-			[player start];
+			[self startPlayer];
 		}
 	}
 }
@@ -170,42 +221,10 @@ PLAYER_PROP_DOUBLE(bitRate,bitRate);
 PLAYER_PROP_DOUBLE(progress,progress);
 PLAYER_PROP_DOUBLE(state,state);
 PLAYER_PROP_DOUBLE(stopReason,stopReason);
-
--(NSNumber *)volume
-{
-	if (player != nil){
-		volume = [player volume];
-	}
-	return NUMDOUBLE(volume);
-}
-
--(void)setVolume:(NSNumber *)newVolume
-{
-	volume = [TiUtils doubleValue:newVolume def:volume];
-	if (player != nil) {
-		[player setVolume:volume];
-	}
-}
-
--(void)setBufferSize:(NSNumber*)bufferSize_
-{
-    bufferSize = [bufferSize_ unsignedIntegerValue];
-    if (player != nil) {
-        [player setBufferSize:bufferSize];
-    }
-}
-
--(NSNumber*)bufferSize
-{
-    return [NSNumber numberWithUnsignedInteger:((bufferSize) ? bufferSize : kAQDefaultBufSize)];
-}
+PLAYER_PROP_DOUBLE(duration,duration);
 
 -(void)setUrl:(id)args
 {
-	if (![NSThread isMainThread]) {
-		TiThreadPerformOnMainThread(^{[self setUrl:args];}, YES);
-		return;
-	}
 	RELEASE_TO_NIL(url);
 	ENSURE_SINGLE_ARG(args,NSString);
 	url = [[TiUtils toURL:args proxy:self] retain];
@@ -220,38 +239,39 @@ PLAYER_PROP_DOUBLE(stopReason,stopReason);
 	return url;
 }
 
--(void)play:(id)args
+-(void)setTime:(id)args
 {
-	[self start:args];
+    ENSURE_SINGLE_ARG(args,NSNumber);
+    double time = [TiUtils doubleValue:args];
+    
+    [[self player] seekToTime:time];
 }
 
-// Only need to ensure the UI thread when starting; and we should actually wait until it's finished so
-// that execution flow is correct (if we stop/pause immediately after)
+-(NSNumber*)time
+{
+    return [self progress];
+}
+
+-(void)setVolume:(id)args
+{
+    ENSURE_SINGLE_ARG(args,NSNumber);
+    float newVolume = [TiUtils floatValue:args];
+    
+    [[MPMusicPlayerController applicationMusicPlayer] setVolume:newVolume];
+}
+
+-(NSNumber*)volume
+{
+    return NUMFLOAT([[TiMediaAudioSession sharedSession] volume]);
+}
+
 -(void)start:(id)args
 {
-	if (![NSThread isMainThread]) {
-		TiThreadPerformOnMainThread(^{[self start:args];}, YES);
-		return;
-	}
-	// indicate we're going to start playing
-	if (![[TiMediaAudioSession sharedSession] canPlayback]) {
-		[self throwException:@"Improper audio session mode for playback"
-				   subreason:[[NSNumber numberWithUnsignedInt:[[TiMediaAudioSession sharedSession] sessionMode]] description]
-					location:CODELOCATION];
-	}
-	
-	if (player == nil || !([player isPlaying] || [player isPaused] || [player isWaiting])) {
-		[[TiMediaAudioSession sharedSession] startAudioSession];
-	}
-	[[self player] start];
+    [self internalStart];
 }
 
 -(void)stop:(id)args
 {
-	if (![NSThread isMainThread]) {
-		TiThreadPerformOnMainThread(^{[self stop:args];}, YES);
-		return;
-	}
 	if (player!=nil)
 	{		
 		if ([player isPlaying] || [player isPaused] || [player isWaiting])
@@ -264,10 +284,6 @@ PLAYER_PROP_DOUBLE(stopReason,stopReason);
 
 -(void)pause:(id)args
 {
-	if (![NSThread isMainThread]) {
-		TiThreadPerformOnMainThread(^{[self pause:args];}, YES);
-		return;
-	}
 	if (player!=nil)
 	{
 		[player pause];
@@ -288,16 +304,16 @@ MAKE_SYSTEM_PROP(STATE_PAUSED,AS_PAUSED);
 {
     UInt32 newMode = [mode unsignedIntegerValue]; // Close as we can get to UInt32
     if (newMode == kAudioSessionCategory_RecordAudio) {
-        DebugLog(@"[WARN] Invalid mode for audio player... setting to default.");
+        NSLog(@"[WARN] Invalid mode for audio player... setting to default.");
         newMode = kAudioSessionCategory_SoloAmbientSound;
     }
-	DebugLog(@"[WARN] 'Ti.Media.AudioPlayer.audioSessionMode' is deprecated; use 'Ti.Media.audioSessionMode'");
+	NSLog(@"[WARN] 'Titanium.Media.AudioPlayer.audioSessionMode' is deprecated; use 'Titanium.Media.audioSessionMode'");
 	[[TiMediaAudioSession sharedSession] setSessionMode:newMode];
 }
 
 -(NSNumber*)audioSessionMode
 {
-	DebugLog(@"[WARN] 'Ti.Media.AudioPlayer.audioSessionMode' is deprecated; use 'Ti.Media.audioSessionMode'");	
+	NSLog(@"[WARN] 'Titanium.Media.AudioPlayer.audioSessionMode' is deprecated; use 'Titanium.Media.audioSessionMode'");	
     return [NSNumber numberWithUnsignedInteger:[[TiMediaAudioSession sharedSession] sessionMode]];
 }
 
@@ -349,18 +365,105 @@ MAKE_SYSTEM_PROP(STATE_PAUSED,AS_PAUSED);
 
 - (void)updateProgress:(NSTimer *)updatedTimer
 {
-	if (player!=nil && [player isPlaying])
+    if (!player){
+        return;
+    }
+    
+    // need to keep firing progress updates for the last few seconds of the reported duration
+    // even if player has stopped streaming audio
+    if (player.state == AS_STOPPING || player.state == AS_STOPPED)
+    {
+        afterStopProgress = YES;
+        previousDuration = player.duration;
+    }
+    
+	if ([player isPlaying] || afterStopProgress)
 	{
-		double value = 0;
-		
-		if (player.bitRate != 0.0)
-		{
-			value = player.progress;
-		}
-		NSDictionary *event = [NSDictionary dictionaryWithObject:NUMDOUBLE(value) forKey:@"progress"];
+		if (afterStopProgress){
+            NSUInteger playerProgressInt = round(playerProgress);
+            NSUInteger previousDurationInt = round(previousDuration);
+            
+            // (1) stop firing progress updates if the player was stopped significantly before the end
+            // (most likely a manual stop versus the player ending a bit before its reported duration)
+            // (2) stop firing progress updates when the progress has reached the reported duration
+            if (playerProgressInt + 3 < previousDurationInt || playerProgressInt >= previousDurationInt){
+                afterStopProgress = false;
+                playerProgress = 0.0;
+            }
+            else
+            {
+                // simulate progress
+                playerProgress += 1.0;
+            }
+        }
+        else
+        {
+            if (player.bitRate != 0.0)
+            {
+                playerProgress = player.progress;
+            }
+            else
+            {
+                playerProgress = 0.0;
+            }
+        }
+        
+        NSDictionary *event = [NSDictionary dictionaryWithObject:NUMDOUBLE(playerProgress) forKey:@"progress"];
 		[self fireEvent:@"progress" withObject:event];
 	}
 }
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_4_0
+
+- (void)remoteControlEvent:(NSNotification*)note
+{
+	UIEvent *uiEvent = [[note userInfo] objectForKey:@"event"];
+	
+    if (fireRemoteControlEvents)
+    {
+        NSDictionary *event = [NSDictionary dictionaryWithObject:NUMINT(uiEvent.subtype) forKey:@"controlType"];
+        [self fireEvent:@"remoteControl" withObject:event];
+    }
+    
+    if (![TiUtils boolValue:[self valueForKey:@"handlePlayRemoteControls"]])
+    {
+        return;
+    }
+    
+    switch(uiEvent.subtype)
+	{
+		case UIEventSubtypeRemoteControlTogglePlayPause:
+		{
+			if ([player isPaused])
+			{
+				[self start:nil];
+			}
+			else 
+			{
+				[self pause:nil];
+			}
+			break;
+		}
+		case UIEventSubtypeRemoteControlPause:
+		{
+			[self pause:nil];
+			break;
+		}
+		case UIEventSubtypeRemoteControlStop:
+		{
+			[self stop:nil];
+			break;
+		}
+		case UIEventSubtypeRemoteControlPlay:
+		{
+			[self start:nil];
+			break;
+		}
+        default:
+            break;
+	}
+}
+#endif
 
 @end
 
