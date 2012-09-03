@@ -290,6 +290,17 @@ PLAYER_PROP_DOUBLE(duration,duration);
 	}
 }
 
+-(void)setRemoteTitle:(id)args
+{
+  #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_5_0
+    ENSURE_SINGLE_ARG(args,NSString);
+    NSDictionary *mpInfo;
+    mpInfo = [NSDictionary dictionaryWithObjectsAndKeys:args, MPMediaItemPropertyTitle, nil];
+    
+    [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo = mpInfo;
+  #endif
+}
+
 MAKE_SYSTEM_PROP(STATE_INITIALIZED,AS_INITIALIZED);
 MAKE_SYSTEM_PROP(STATE_STARTING,AS_STARTING_FILE_THREAD);
 MAKE_SYSTEM_PROP(STATE_WAITING_FOR_DATA,AS_WAITING_FOR_DATA);
