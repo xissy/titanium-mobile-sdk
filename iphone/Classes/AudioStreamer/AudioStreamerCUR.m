@@ -895,10 +895,10 @@ cleanup:
 			{
 				return lastProgress * 1000;
 			}
-			else if (err)
-			{
-				[self failWithErrorCode:AS_GET_AUDIO_TIME_FAILED];
-			}
+			// else if (err)
+			// {
+			// 	[self failWithErrorCode:AS_GET_AUDIO_TIME_FAILED];
+			// }
 
 			double progress = seekTime + queueTime.mSampleTime / sampleRate;
 			if (progress < 0.0)

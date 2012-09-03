@@ -366,6 +366,7 @@ class Builder(object):
 				for device in devices:
 					if type == "e" and device.is_emulator() and not device.is_offline(): found = True
 					elif type == "d" and device.is_device(): found = True
+					found = True
 				if found:
 					timed_out = False
 					break
@@ -1538,7 +1539,7 @@ class Builder(object):
 
 	def run_adb(self, *args):
 		command = [self.sdk.get_adb()]
-		command.extend(self.device_args)
+		# command.extend(self.device_args)
 		command.extend(args)
 		return run.run(command)
 
