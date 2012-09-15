@@ -425,7 +425,6 @@ MAKE_SYSTEM_PROP(STATE_PAUSED,AS_PAUSED);
 }
 
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_4_0
-
 - (void)remoteControlEvent:(NSNotification*)note
 {
 	UIEvent *uiEvent = [[note userInfo] objectForKey:@"event"];

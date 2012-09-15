@@ -25,6 +25,8 @@
 	TiFile *tempFile;
 	KrollCallback *thumbnailCallback;
 	int callbackRequestCount;
+
+  BOOL fireRemoteControlEvents;
 	
 	NSMutableDictionary* loadProperties; // Used to set properties when the player is created
 	BOOL sizeDetermined;

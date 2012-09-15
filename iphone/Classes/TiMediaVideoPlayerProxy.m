@@ -66,6 +66,17 @@ NSArray* moviePlayerKeys = nil;
 	loadProperties = [[NSMutableDictionary alloc] init];
 	playerLock = [[NSRecursiveLock alloc] init];
 	[super _initWithProperties:properties];
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_4_0
+  // default handlePlayRemoteControls to true
+  bool handlePlayRemoteControls = [TiUtils boolValue:@"handlePlayRemoteControls" properties:properties def:YES];
+  [self setValue:NUMBOOL(handlePlayRemoteControls) forKey:@"handlePlayRemoteControls"];
+  
+  WARN_IF_BACKGROUND_THREAD_OBJ;	//NSNotificationCenter is not threadsafe!
+  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(remoteControlEvent:) name:kTiRemoteControlNotification object:nil];
+
+  fireRemoteControlEvents = YES;
+#endif
 }
 
 
@@ -1023,6 +1034,30 @@ NSArray* moviePlayerKeys = nil;
 			break;
 	}
 }
+
+-(void)setRemoteTitle:(id)args
+{
+  #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_5_0
+    ENSURE_SINGLE_ARG(args,NSString);
+    NSDictionary *mpInfo;
+    mpInfo = [NSDictionary dictionaryWithObjectsAndKeys:args, MPMediaItemPropertyTitle, nil];
+    
+    [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo = mpInfo;
+  #endif
+}
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_4_0
+- (void)remoteControlEvent:(NSNotification*)note
+{
+	UIEvent *uiEvent = [[note userInfo] objectForKey:@"event"];
+	
+    if (fireRemoteControlEvents)
+    {
+        NSDictionary *event = [NSDictionary dictionaryWithObject:NUMINT(uiEvent.subtype) forKey:@"controlType"];
+        [self fireEvent:@"remoteControl" withObject:event];
+    }
+}
+#endif
 
 @end
 
