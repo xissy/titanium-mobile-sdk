@@ -35,6 +35,8 @@
   
   WARN_IF_BACKGROUND_THREAD_OBJ;	//NSNotificationCenter is not threadsafe!
   [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(remoteControlEvent:) name:kTiRemoteControlNotification object:nil];
+
+  fireRemoteControlEvents = YES;
 #endif
 }
 
@@ -77,10 +79,10 @@
 		progress = NO;
 	}
     
-    if (count == 0 && [type isEqualToString:@"remoteControl"])
-	{
-		fireRemoteControlEvents = NO;
-	}
+ //    if (count == 0 && [type isEqualToString:@"remoteControl"])
+	// {
+	// 	fireRemoteControlEvents = NO;
+	// }
 }
 
 -(void)createProgressTimer
@@ -427,51 +429,59 @@ MAKE_SYSTEM_PROP(STATE_PAUSED,AS_PAUSED);
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_4_0
 - (void)remoteControlEvent:(NSNotification*)note
 {
-	UIEvent *uiEvent = [[note userInfo] objectForKey:@"event"];
-	
+    UIEvent *uiEvent = [[note userInfo] objectForKey:@"event"];
+    
     if (fireRemoteControlEvents)
     {
         NSDictionary *event = [NSDictionary dictionaryWithObject:NUMINT(uiEvent.subtype) forKey:@"controlType"];
         [self fireEvent:@"remoteControl" withObject:event];
     }
+      
+	// UIEvent *uiEvent = [[note userInfo] objectForKey:@"event"];
+	
+ //    if (fireRemoteControlEvents)
+ //    {
+ //        NSDictionary *event = [NSDictionary dictionaryWithObject:NUMINT(uiEvent.subtype) forKey:@"controlType"];
+ //        [self fireEvent:@"remoteControl" withObject:event];
+ //    }
     
-    if (![TiUtils boolValue:[self valueForKey:@"handlePlayRemoteControls"]])
-    {
-        return;
-    }
+ //    if (![TiUtils boolValue:[self valueForKey:@"handlePlayRemoteControls"]])
+ //    {
+ //        return;
+ //    }
     
-    switch(uiEvent.subtype)
-	{
-		case UIEventSubtypeRemoteControlTogglePlayPause:
-		{
-			if ([player isPaused])
-			{
-				[self start:nil];
-			}
-			else 
-			{
-				[self pause:nil];
-			}
-			break;
-		}
-		case UIEventSubtypeRemoteControlPause:
-		{
-			[self pause:nil];
-			break;
-		}
-		case UIEventSubtypeRemoteControlStop:
-		{
-			[self stop:nil];
-			break;
-		}
-		case UIEventSubtypeRemoteControlPlay:
-		{
-			[self start:nil];
-			break;
-		}
-        default:
-            break;
-	}
+ //    switch(uiEvent.subtype)
+	// {
+	// 	case UIEventSubtypeRemoteControlTogglePlayPause:
+	// 	{
+	// 		if ([player isPaused])
+	// 		{
+	// 			[self start:nil];
+	// 		}
+	// 		else 
+	// 		{
+	// 			[self pause:nil];
+	// 		}
+	// 		break;
+	// 	}
+	// 	case UIEventSubtypeRemoteControlPause:
+	// 	{
+	// 		[self pause:nil];
+	// 		break;
+	// 	}
+	// 	case UIEventSubtypeRemoteControlStop:
+	// 	{
+	// 		[self stop:nil];
+	// 		break;
+	// 	}
+	// 	case UIEventSubtypeRemoteControlPlay:
+	// 	{
+	// 		[self start:nil];
+	// 		break;
+	// 	}
+ //        default:
+ //            break;
+	// }
 }
 #endif
 

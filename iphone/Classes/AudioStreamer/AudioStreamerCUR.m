@@ -1435,6 +1435,14 @@ cleanup:
 		return;
 	}
 
+	// set the software codec too on the queue.
+	UInt32 val = kAudioQueueHardwareCodecPolicy_PreferSoftware;
+	ignorableError = AudioQueueSetProperty(audioQueue, kAudioQueueProperty_HardwareCodecPolicy, &val, sizeOfUInt32);
+	if (ignorableError)
+	{
+	    return;
+	}
+
 	// set the cookie on the queue.
 	ignorableError = AudioQueueSetProperty(audioQueue, kAudioQueueProperty_MagicCookie, cookieData, cookieSize);
 	free(cookieData);

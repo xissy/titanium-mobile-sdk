@@ -5,7 +5,7 @@
 
 import os, sys, platform, glob, subprocess, types, re
 
-DEFAULT_API_LEVEL = 8
+DEFAULT_API_LEVEL = 14
 
 android_api_levels = {
 	3: 'android-1.5',
@@ -16,7 +16,8 @@ android_api_levels = {
 	8: 'android-2.2',
 	9: 'android-2.3',
 	10: 'android-2.3.3',
-	11: 'android-3.0'
+	11: 'android-3.0',
+	14: 'android-4.0'
 }
 
 class Device:
